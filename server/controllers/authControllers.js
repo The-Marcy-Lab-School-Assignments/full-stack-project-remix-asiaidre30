@@ -1,51 +1,56 @@
-const userModel = require('../models/userModel');
+const bcrypt = require("bcrypt");
+const { createUser, findByUsername, findById } = require("../models/userModel");
 
-module.exports.register = async (req, res, next) => {
+// POST /api/auth/register — create a new account
+const register = async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).send({ error: 'Username and password are required.' });
-    }
-
-    const existingUser = await userModel.findByUsername(username);
-    if (existingUser) {
-      return res.status(400).send({ error: 'Username already taken.' });
-    }
-
-    const user = await userModel.create(username, password);
-    req.session.user_id = user.user_id;
-    res.status(201).send(user);
+    const user = await createUser(username, password);
+    req.session.userId = user.user_id; // save their id in the session cookie
+    res.status(201).json(user);
   } catch (err) {
-    next(err);
+    // username already taken triggers a unique constraint error
+    res.status(400).json({ error: "Username already taken." });
   }
 };
 
-module.exports.login = async (req, res, next) => {
+// POST /api/auth/login — log into an existing account
+const login = async (req, res) => {
   try {
     const { username, password } = req.body;
-    const user = await userModel.validatePassword(username, password);
-    if (!user) return res.status(401).send({ error: 'Invalid credentials.' });
-    req.session.user_id = user.user_id;
-    res.send(user);
+    const user = await findByUsername(username);
+
+    // if no user found, or password doesn't match — send the same vague error (security)
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+      return res.status(401).json({ error: "Invalid username or password." });
+    }
+
+    req.session.userId = user.user_id; // save their id in the session
+    res.json({ user_id: user.user_id, username: user.username });
   } catch (err) {
-    next(err);
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Returns the logged-in user object, or null if no session exists.
-// Returning JSON null (200) keeps the response format consistent — the frontend
-// can always call response.json() without hitting a parse error.
-module.exports.getMe = async (req, res, next) => {
+// DELETE /api/auth/logout — end the session
+const logout = (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid"); // remove the session cookie from the browser
+    res.json({ message: "Logged out." });
+  });
+};
+
+// GET /api/auth/me — check who is currently logged in
+const me = async (req, res) => {
   try {
-    if (!req.session.user_id) return res.json(null);
-    const user = await userModel.find(req.session.user_id);
+    if (!req.session.userId) {
+      return res.json(null); // no session = no user
+    }
+    const user = await findById(req.session.userId);
     res.json(user);
   } catch (err) {
-    next(err);
+    res.status(500).json({ error: err.message });
   }
 };
 
-module.exports.logout = (req, res) => {
-  req.session = null;
-  res.send({ message: 'Logged out.' });
-};
+module.exports = { register, login, logout, me };

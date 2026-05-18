@@ -1,50 +1,71 @@
-import { useState, useEffect } from 'react';
-import { getMe, login, register, logout } from './adapters/auth-adapters';
-import AuthPage from './components/AuthPage';
-import TodoPage from './components/TodoPage';
+import { useState, useEffect } from "react";
+import { getMe, logoutUser } from "./adapters/auth-adapters";
+import AuthPage from "./components/AuthPage";
+import ApplicationPage from "./components/ApplicationPage";
+import "./App.css";
 
-function App() {
+export default function App() {
+  // currentUser holds the logged in user or null if guest
   const [currentUser, setCurrentUser] = useState(null);
+  // loading tracks whether we're still checking the session
+  const [isLoading, setIsLoading] = useState(true);
 
-  // On every page load, check the server for an active session cookie.
-  // React state doesn't survive a refresh; session cookies do.
+  // on page load, check if a session already exists (rehydration)
   useEffect(() => {
-    const checkForSession = async () => {
-      const { data: user } = await getMe();
-      setCurrentUser(user);
+    const checkSession = async () => {
+      const user = await getMe();
+      // if a user comes back, set them as current user
+      if (user && user.user_id) setCurrentUser(user);
+      setIsLoading(false);
     };
-    checkForSession();
+    checkSession();
   }, []);
 
-  // Handlers that manage updating the current user. 
-  // Defined in App to ensure that child components only                       
-  // update the current user in a controlled manner.  
-  const handleLogin = async (username, password) => {
-    const { data: user, error } = await login(username, password);
-    if (error) return error;
-    setCurrentUser(user);
-  };
+  // called after login or register succeeds
+  const handleLogin = (user) => setCurrentUser(user);
 
-  const handleRegister = async (username, password) => {
-    const { data: user, error } = await register(username, password);
-    if (error) return error;
-    setCurrentUser(user);
-  };
-
+  // clear the session and set user back to null
   const handleLogout = async () => {
-    await logout();
+    await logoutUser();
     setCurrentUser(null);
   };
 
+  // show nothing while we're checking the session
+  if (isLoading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner"></div>
+        <p>Loading ApplyFlow...</p>
+      </div>
+    );
+  }
+
   return (
-    <main>
-      <h1>Todo App</h1>
-      {currentUser
-        ? <TodoPage currentUser={currentUser} handleLogout={handleLogout} />
-        : <AuthPage handleLogin={handleLogin} handleRegister={handleRegister} />
-      }
-    </main>
+    <div className="app">
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-icon">⚡</span>
+          <h1 className="brand-name">ApplyFlow</h1>
+        </div>
+        {/* only show logout button when logged in */}
+        {currentUser && (
+          <div className="header-right">
+            <span className="welcome-text">hey, {currentUser.username}</span>
+            <button className="logout-btn" onClick={handleLogout}>
+              Log Out
+            </button>
+          </div>
+        )}
+      </header>
+
+      <main className="app-main">
+        {/* show auth forms for guests, application dashboard for logged in users */}
+        {!currentUser ? (
+          <AuthPage onLogin={handleLogin} />
+        ) : (
+          <ApplicationPage currentUser={currentUser} />
+        )}
+      </main>
+    </div>
   );
 }
-
-export default App;

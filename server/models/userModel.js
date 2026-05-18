@@ -1,38 +1,31 @@
-const bcrypt = require('bcrypt');
-const pool = require('../db/pool');
+const pool = require("../db/pool");
+const bcrypt = require("bcrypt");
 
-const SALT_ROUNDS = 8;
-
-// Creates a new user. Returns { user_id, username } — never exposes password_hash.
-module.exports.create = async (username, password) => {
-  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-  const query = 'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING user_id, username';
-  const { rows } = await pool.query(query, [username, passwordHash]);
-  return rows[0];
+// save a new user to the database — hashes the password first
+const createUser = async (username, password) => {
+  const hash = await bcrypt.hash(password, 10); // 10 = how hard the hash is to crack
+  const result = await pool.query(
+    `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING user_id, username`,
+    [username, hash],
+  );
+  return result.rows[0]; // return the new user (no password)
 };
 
-// Returns { user_id, username } or null
-module.exports.find = async (user_id) => {
-  const query = 'SELECT user_id, username FROM users WHERE user_id = $1';
-  const { rows } = await pool.query(query, [user_id]);
-  return rows[0] || null;
+// find a user by username — used during login
+const findByUsername = async (username) => {
+  const result = await pool.query(`SELECT * FROM users WHERE username = $1`, [
+    username,
+  ]);
+  return result.rows[0]; // returns undefined if not found
 };
 
-// Returns { user_id, username } or null — used to check if a username is taken
-module.exports.findByUsername = async (username) => {
-  const query = 'SELECT user_id, username FROM users WHERE username = $1';
-  const { rows } = await pool.query(query, [username]);
-  return rows[0] || null;
+// find a user by their id — used to rehydrate the session
+const findById = async (user_id) => {
+  const result = await pool.query(
+    `SELECT user_id, username FROM users WHERE user_id = $1`,
+    [user_id],
+  );
+  return result.rows[0];
 };
 
-// Verifies a password against the stored hash. Returns { user_id, username } if
-// valid, or null if the username doesn't exist or the password is wrong.
-module.exports.validatePassword = async (username, password) => {
-  const query = 'SELECT * FROM users WHERE username = $1';
-  const { rows } = await pool.query(query, [username]);
-  const user = rows[0];
-  if (!user) return null;
-  const isValid = await bcrypt.compare(password, user.password_hash);
-  if (!isValid) return null;
-  return { user_id: user.user_id, username: user.username };
-};
+module.exports = { createUser, findByUsername, findById };

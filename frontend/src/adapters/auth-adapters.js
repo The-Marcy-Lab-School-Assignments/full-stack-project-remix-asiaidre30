@@ -1,34 +1,33 @@
-const handleFetch = async (url, options = {}) => {
-  try {
-    const response = await fetch(url, options);
-    if (!response.ok) throw new Error(`Fetch failed. ${response.status} ${response.statusText}`);
-    const data = await response.json();
-    return { data, error: null };
-  } catch (error) {
-    return { data: null, error };
-  }
+// all the fetch calls related to auth
+
+// send username + password to register
+export const registerUser = async (username, password) => {
+  const res = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  return res.json();
 };
 
+// send username + password to log in
+export const loginUser = async (username, password) => {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  return res.json();
+};
+
+// end the session
+export const logoutUser = async () => {
+  const res = await fetch("/api/auth/logout", { method: "DELETE" });
+  return res.json();
+};
+
+// check if a session already exists (used on page load)
 export const getMe = async () => {
-  return handleFetch('/api/auth/me');
-};
-
-export const register = async (username, password) => {
-  return handleFetch('/api/auth/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-};
-
-export const login = async (username, password) => {
-  return handleFetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-};
-
-export const logout = async () => {
-  return handleFetch('/api/auth/logout', { method: 'DELETE' });
+  const res = await fetch("/api/auth/me");
+  return res.json();
 };

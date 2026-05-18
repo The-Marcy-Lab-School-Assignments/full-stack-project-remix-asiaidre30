@@ -1,59 +1,74 @@
-const path = require('path');
-const express = require('express');
-const cookieSession = require('cookie-session');
-require('dotenv').config();
+require("dotenv").config(); // load .env first, before anything else
 
-const logRoutes = require('./middleware/logRoutes');
-const checkAuthentication = require('./middleware/checkAuthentication');
-const authControllers = require('./controllers/authControllers');
-const todoControllers = require('./controllers/todoControllers');
+const express = require("express");
+const session = require("express-session");
+const logRoutes = require("./middleware/logRoutes");
+const checkAuthentication = require("./middleware/checkAuthentication");
+const authControllers = require("./controllers/authControllers");
+const applicationControllers = require("./controllers/applicationControllers");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// ====================================
-// Middleware
-// ====================================
+// ── Middleware ────────────────────────────────────────────────────────────────
 
-app.use(logRoutes);
-app.use(cookieSession({ name: 'session', secret: process.env.SESSION_SECRET }));
-app.use(express.json());
+app.use(logRoutes); // log every request to the terminal
+app.use(express.json()); // parse incoming JSON request bodies
 
-// In production, serve the built React app from frontend/dist.
-// In development, Vite's dev server handles the frontend on a separate port
-// and proxies /api requests to this server.
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// set up sessions — stores a cookie in the browser to track who's logged in
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+  }),
+);
 
-// ====================================
-// Auth routes
-// ====================================
+// serve the built React app as static files
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-app.post('/api/auth/register', authControllers.register);
-app.post('/api/auth/login', authControllers.login);
-app.get('/api/auth/me', authControllers.getMe);
-app.delete('/api/auth/logout', authControllers.logout);
+// ── Auth Routes ───────────────────────────────────────────────────────────────
 
-// ====================================
-// Todo routes (all require authentication)
-// ====================================
+app.post("/api/auth/register", authControllers.register);
+app.post("/api/auth/login", authControllers.login);
+app.delete("/api/auth/logout", authControllers.logout);
+app.get("/api/auth/me", authControllers.me);
 
-app.get('/api/todos', checkAuthentication, todoControllers.listTodos);
-app.post('/api/todos', checkAuthentication, todoControllers.createTodo);
-app.patch('/api/todos/:todo_id', checkAuthentication, todoControllers.updateTodo);
-app.delete('/api/todos/:todo_id', checkAuthentication, todoControllers.deleteTodo);
+// ── Application Routes (must be logged in) ────────────────────────────────────
 
-// ====================================
-// Global Error Handler
-// ====================================
+app.get(
+  "/api/applications",
+  checkAuthentication,
+  applicationControllers.getApplications,
+);
+app.post(
+  "/api/applications",
+  checkAuthentication,
+  applicationControllers.createApplication,
+);
+app.delete(
+  "/api/applications/:application_id",
+  checkAuthentication,
+  applicationControllers.deleteApplication,
+);
 
-const handleError = (err, req, res, next) => {
+// ── Catch-All: send React app for any unknown route ───────────────────────────
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/dist", "index.html"));
+});
+
+// ── Global Error Handler ──────────────────────────────────────────────────────
+
+// catches any error passed via next(err) and sends a 500
+app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).send({ message: 'Internal Server Error' });
-};
-app.use(handleError);
+  res.status(500).json({ error: "Something went wrong on the server." });
+});
 
-// ====================================
-// Listen
-// ====================================
+// ── Start Server ──────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

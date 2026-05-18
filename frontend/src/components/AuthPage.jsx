@@ -1,84 +1,87 @@
-import { useState } from 'react';
+import { useState } from "react";
+import { loginUser, registerUser } from "../adapters/auth-adapters";
 
-function LoginForm({ handleLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState(null);
+// this page shows login and register forms for guests
+export default function AuthPage({ onLogin }) {
+  // toggle between login and register mode
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const error = await handleLogin(username, password);
-    if (error) {
-      setErrorMessage('Invalid username or password.');
+    e.preventDefault(); // stop page from refreshing
+    setError(null);
+    setIsLoading(true);
+
+    // call login or register depending on which mode we're in
+    const user = isLogin
+      ? await loginUser(username, password)
+      : await registerUser(username, password);
+
+    setIsLoading(false);
+
+    // if server sent back an error message, show it
+    if (user.error) {
+      setError(user.error);
+      return;
     }
+
+    // success — tell App.jsx who logged in
+    onLogin(user);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Log In</h2>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      {errorMessage && <p className="error">{errorMessage}</p>}
-      <button type="submit">Log In</button>
-    </form>
-  );
-}
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h2>{isLogin ? "Welcome back" : "Create account"}</h2>
+          <p>
+            {isLogin
+              ? "Sign in to track your applications"
+              : "Start tracking your job search"}
+          </p>
+        </div>
 
-function RegisterForm({ handleRegister }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState(null);
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username"
+              required
+            />
+          </div>
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const error = await handleRegister(username, password);
-    if (error) {
-      setErrorMessage('Could not register. Username may already be taken.');
-    }
-  };
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              required
+            />
+          </div>
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <h2>Register</h2>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      {errorMessage && <p className="error">{errorMessage}</p>}
-      <button type="submit">Register</button>
-    </form>
-  );
-}
+          {/* show error message if something went wrong */}
+          {error && <p className="error-msg">{error}</p>}
 
-function AuthPage({ handleLogin, handleRegister }) {
-  return (
-    <div id="auth-section">
-      <LoginForm handleLogin={handleLogin} />
-      <RegisterForm handleRegister={handleRegister} />
+          <button type="submit" className="submit-btn" disabled={isLoading}>
+            {isLoading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
+          </button>
+        </form>
+
+        {/* toggle between login and register */}
+        <button className="toggle-btn" onClick={() => setIsLogin(!isLogin)}>
+          {isLogin
+            ? "Don't have an account? Register"
+            : "Already have an account? Sign in"}
+        </button>
+      </div>
     </div>
   );
 }
-
-export default AuthPage;
