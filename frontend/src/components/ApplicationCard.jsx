@@ -13,9 +13,9 @@ const statusConfig = {
   interviewing: {
     icon: "🎙️",
     label: "Interviewing",
-    color: "#f59e0b",
+    color: "#b17307",
     bg: "rgba(245, 158, 11, 0.1)",
-    border: "rgba(245, 158, 11, 0.3)",
+    border: "rgba(186, 125, 21, 0.3)",
   },
   offer: {
     icon: "🎉",
