@@ -3,7 +3,6 @@ import { getApplications } from "../adapters/application-adapters";
 import AddApplicationForm from "./AddApplicationForm";
 import ApplicationList from "./ApplicationList";
 
-// main dashboard page — shows form and list of applications
 export default function ApplicationPage({ currentUser }) {
   const [applications, setApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -14,7 +13,7 @@ export default function ApplicationPage({ currentUser }) {
     fetchApplications();
   }, []);
 
-  // get all applications from the server and update state
+  // get all applications and update state — called after every create, update, delete
   const fetchApplications = async () => {
     setIsLoading(true);
     const data = await getApplications();
@@ -38,16 +37,15 @@ export default function ApplicationPage({ currentUser }) {
         </div>
       </div>
 
-      {/* form to add a new application — refetches list after adding */}
       <AddApplicationForm onAdd={fetchApplications} />
 
-      {/* show loading, error, or the list */}
       {isLoading && <p className="status-msg">Loading your applications...</p>}
       {error && <p className="error-msg">{error}</p>}
       {!isLoading && !error && (
         <ApplicationList
           applications={applications}
           onDelete={fetchApplications}
+          onUpdate={fetchApplications}
         />
       )}
     </div>

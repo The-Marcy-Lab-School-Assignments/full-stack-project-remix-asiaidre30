@@ -27,7 +27,7 @@ const create = async ({
   return result.rows[0];
 };
 
-// delete one application — only if it belongs to this user (ownership check)
+// delete one application — only if it belongs to this user
 const remove = async (application_id, user_id) => {
   const result = await pool.query(
     `DELETE FROM applications
@@ -35,7 +35,23 @@ const remove = async (application_id, user_id) => {
      RETURNING *`,
     [application_id, user_id],
   );
-  return result.rows[0]; // returns undefined if nothing was deleted (wrong user)
+  return result.rows[0];
 };
 
-module.exports = { findByUser, create, remove };
+// update an application — only if it belongs to this user
+const update = async (
+  application_id,
+  user_id,
+  { company, role, status, date_applied, notes },
+) => {
+  const result = await pool.query(
+    `UPDATE applications
+     SET company = $1, role = $2, status = $3, date_applied = $4, notes = $5
+     WHERE application_id = $6 AND user_id = $7
+     RETURNING *`,
+    [company, role, status, date_applied, notes, application_id, user_id],
+  );
+  return result.rows[0]; // returns undefined if application not found or wrong user
+};
+
+module.exports = { findByUser, create, remove, update };

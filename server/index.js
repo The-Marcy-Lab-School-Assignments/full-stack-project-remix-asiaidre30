@@ -34,6 +34,11 @@ app.post("/api/auth/register", authControllers.register);
 app.post("/api/auth/login", authControllers.login);
 app.delete("/api/auth/logout", authControllers.logout);
 app.get("/api/auth/me", authControllers.me);
+app.patch(
+  "/api/applications/:application_id",
+  checkAuthentication,
+  applicationControllers.updateApplication,
+);
 
 // ── Application Routes (must be logged in) ────────────────────────────────────
 
