@@ -1,12 +1,17 @@
-const { Pool } = require("pg");
+// load env variables from .env file
 require("dotenv").config();
 
+// bring in pg so we can talk to postgres
+const { Pool } = require("pg");
+
+// create a connection pool
+// if we're on Render (production), turn off SSL certificate verification
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
+// share the pool so other files can use it
 module.exports = pool;
