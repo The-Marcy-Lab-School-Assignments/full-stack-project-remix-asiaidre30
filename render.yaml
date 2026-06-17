@@ -1,0 +1,22 @@
+databases:
+  - name: applyflow-db
+    databaseName: applyflow
+    user: applyflow
+    plan: free
+
+services:
+  - type: web
+    name: applyflow
+    runtime: node
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build && cd ../server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: PG_CONNECTION_STRING
+        fromDatabase:
+          name: applyflow-db
+          property: connectionString

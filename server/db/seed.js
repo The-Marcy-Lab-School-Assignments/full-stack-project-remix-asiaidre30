@@ -8,9 +8,10 @@ const seed = async () => {
   try {
     const bcrypt = require("bcrypt");
 
-    // drop tables if they already exist (order matters because of foreign key)
-    await pool.query(`DROP TABLE IF EXISTS applications`);
-    await pool.query(`DROP TABLE IF EXISTS users`);
+    // drop tables if they already exist
+    await pool.query(`DROP TABLE IF EXISTS applications CASCADE`);
+    await pool.query(`DROP TABLE IF EXISTS todos CASCADE`);
+    await pool.query(`DROP TABLE IF EXISTS users CASCADE`);
 
     // create the users table
     await pool.query(`
