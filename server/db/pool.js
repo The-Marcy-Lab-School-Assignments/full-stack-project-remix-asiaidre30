@@ -6,12 +6,12 @@ const { Pool } = require("pg");
 
 // create a connection pool
 // in production use the full connection string; locally use individual PG* env vars
+const connectionString =
+  process.env.DATABASE_URL || process.env.PG_CONNECTION_STRING;
+
 const pool = new Pool(
-  process.env.PG_CONNECTION_STRING
-    ? {
-        connectionString: process.env.PG_CONNECTION_STRING,
-        ssl: { rejectUnauthorized: false },
-      }
+  connectionString
+    ? { connectionString, ssl: { rejectUnauthorized: false } }
     : { ssl: false },
 );
 
