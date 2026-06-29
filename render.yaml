@@ -7,10 +7,10 @@ databases:
 services:
   - type: web
     name: applyflow
-    runtime: node
+    env: node
     plan: free
-    buildCommand: cd frontend && npm install && npm run build && cd ../server && npm install
-    startCommand: cd server && npm start
+    buildCommand: npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production

@@ -1,0 +1,8 @@
+{
+  "name": "applyflow",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix server",
+    "start": "node server/index.js"
+  }
+}
